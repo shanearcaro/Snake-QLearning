@@ -1,242 +1,238 @@
-//          ////////////////////////////
-//         //// SPACE SHOOTER GAME ////
-//        ////    Created By      ////
-//       ////   Lucas Ferguson   ////
-//      ////////////////////////////
+class Game {
+    constructor() {
+        this.raycaster;
+        this.mouse;
 
+        this.world = {
+            width: 60,
+            height: 60
+        }
 
-//// ////
-let raycaster;
-let mouse;
+        this.shipSprite;
 
-let world = {
-    width: 60,
-    height: 60
+        /**
+        * backgroundPlane for mouse raycaster to hit
+        */
+        this.backgroundPlane = new THREE.Mesh(
+            new THREE.PlaneGeometry(this.world.width, this.world.height, 1, 1),
+            new THREE.MeshPhongMaterial({
+                color: 0x111111
+                // wireframe: true
+            })
+        );
+        this.backgroundPlane.position.z = -1;
+        this.backgroundPlane.receiveShadow = true;
+        scene.add(this.backgroundPlane);
+        /**
+        * directionalLight 
+        */
+        this.directionalLight = new THREE.PointLight(0xffffff, 1, 500, 0.01);
+        this.directionalLight.castShadow = true; // default false
+        this.directionalLight.position.x = 0
+        this.directionalLight.position.z = 15
+
+        //Set up shadow properties for the light
+        this.directionalLight.shadow.mapSize.width = 5120; // default 512
+        this.directionalLight.shadow.mapSize.height = 5120; // default 512
+        this.directionalLight.shadow.camera.near = 0; // default
+        this.directionalLight.shadow.camera.far = 1000
+        // default
+        scene.add(this.directionalLight);
+
+        /**
+        * player
+        */
+        this.player = new Player(this.world);
+
+        /**
+        * Time Keeper
+        */
+        this.clock = new THREE.Clock(true);
+        /**
+        * Food
+        */
+        this.apple = new THREE.Mesh(
+            new THREE.BoxGeometry(1, 1, 1),
+            new THREE.MeshLambertMaterial({
+                color: 0xff0000
+            })
+        );
+        scene.add(this.apple);
+        this.apple.castShadow = true;
+
+        this.appleLight = new THREE.PointLight(0xff0000, 1, 20);
+        scene.add(this.appleLight);
+
+        this.deltaTime;
+        this.then = 0;
+        this.frameCount = 0;
+    }
+
+    setup() {
+        this.spawnApple();
+    }
+    
+    spawnApple() {
+        // Spawn the apple in a random location on the board
+        this.apple.position.x = Math.round(Math.random() * this.world.width - this.world.width / 2);
+        this.apple.position.y = Math.round(Math.random() * this.world.height - this.world.height / 2);
+    
+        this.appleLight.position.set(this.apple.position.x, this.apple.position.y, 3);
+    }
+    
+    gameLoop(targetFps) {
+        let previousTimestamp = null;
+        let lag = 0;
+      
+        const loop = (currentTimestamp) => {
+          if (!previousTimestamp) {
+            previousTimestamp = currentTimestamp;
+          }
+      
+          const elapsedMs = currentTimestamp - previousTimestamp;
+          previousTimestamp = currentTimestamp;
+          lag += elapsedMs;
+      
+          while (lag >= 1000 / targetFps) {
+            this.update()
+            lag -= 1000 / targetFps;
+          }
+      
+          // Render the scene
+          this.render()
+    
+          // Request the next frame
+          requestAnimationFrame(loop);
+        }
+        
+        requestAnimationFrame(loop);
+    }
+    
+    update() {
+        // Update user input information
+        controller.update(this.backgroundPlane);
+    
+        // If the player turned left, update direction appropriately
+        if (controller.left) {
+            switch (this.player.direction) {
+                case "up":
+                    this.player.direction = "left";
+                    break;
+                case "left":
+                    this.player.direction = "down";
+                    break;
+                case "down":
+                    this.player.direction = "right";
+                    break;
+                case "right":
+                    this.player.direction = "up";
+                    break;
+            }
+        }
+        // If the player turned right, update direction appropriately
+        if (controller.right) {
+            switch (this.player.direction) {
+                case "up":
+                    this.player.direction = "right";
+                    break;
+                case "left":
+                    this.player.direction = "up";
+                    break;
+                case "down":
+                    this.player.direction = "left";
+                    break;
+                case "right":
+                    this.player.direction = "down";
+                    break;
+            }
+        }
+        if (this.clock.getElapsedTime() > 0.09) {
+            this.player.update();
+
+            if (this.player.isEating(this.apple.position.x, this.apple.position.y)) {
+                this.player.addEntity()
+                this.spawnApple()
+            }
+
+            if (this.player.isColliding() || this.player.isOutOfBounds()) {
+                this.player.reset()
+                this.spawnApple()
+            }
+            this.clock.start();
+            console.log("State:", this.getState())
+        }
+    }
+
+    getState() {
+        // State is 11 variables long broken up into 3 separate parts
+
+        // PART 1 DIRECTIONS [NORTH, WEST, SOUTH, EAST]
+        // PART 2 DANGER [Danger Straight, Danger Right, Danger Left] 
+        // PART 3 FOOD [NORTH, WEST, SOUTH, EAST]
+        let x = this.player.head.position.x
+        let y = this.player.head.position.y
+
+        let north = (x, y - 1)
+        let west = (x - 1, y)
+        let south = (x, y + 1)
+        let east = (x + 1, y)
+
+        let directions = [
+            this.player.direction == "up" | 0,
+            this.player.direction == "right" | 0,
+            this.player.direction == "down" | 0,
+            this.player.direction == "left" | 0
+        ]
+
+        let dangers = [
+            (directions[0] && this.player.isColliding(east[0], east[1]) || directions[2] && this.player.isColliding(west[0], west[1]) || directions[1] && this.player.isColliding(north[0], north[1]) || directions[3] && this.player.isColliding(south[0], south[1])) | 0,
+            (directions[2] && this.player.isColliding(east[0], east[1]) || directions[0] && this.player.isColliding(west[0], west[1]) || directions[3] && this.player.isColliding(north[0], north[1]) || directions[1] && this.player.isColliding(south[0], south[1])) | 0,
+            (directions[3] && this.player.isColliding(east[0], east[1]) || directions[1] && this.player.isColliding(west[0], west[1]) || directions[0] && this.player.isColliding(north[0], north[1]) || directions[2] && this.player.isColliding(south[0], south[1])) | 0
+        ]
+
+        let positions = [
+            this.apple.position.y < this.player.head.position.y | 0,
+            this.apple.position.x < this.player.head.position.x | 0,
+            this.apple.position.y > this.player.head.position.y | 0,
+            this.apple.position.x > this.player.head.position.x | 0
+        ]
+
+        // All state variables
+        return [...directions, ...dangers, ...positions]
+    }
+    
+    // Render the game to the screen
+    render() {
+        renderer.render(scene, camera);
+    }
 }
 
-
-let shipSprite;
-//// ////
-
-/**
- * backgroundPlane for mouse raycaster to hit
- */
-let backgroundPlane = new THREE.Mesh(
-    new THREE.PlaneGeometry(world.width, world.height, 1, 1),
-    new THREE.MeshPhongMaterial({
-        color: 0x111111
-        // wireframe: true
-    })
-);
-backgroundPlane.position.z = -1;
-backgroundPlane.receiveShadow = true;
-scene.add(backgroundPlane);
-// backgroundPlane.material.visible = false;
-////    ////    ////
-///    ////    ////
-//    ////    ////
-
-/**
- * ambientLight Disabled **Disabled**
- */
-let ambientLight = new THREE.AmbientLight(0xffffff, 0.1);
-scene.add(ambientLight); // **Disabled**
-////    ////    ////
-///    ////    ////
-//    ////    ////
-
-/**
- * directionalLight 
- */
-var directionalLight = new THREE.PointLight(0xffffff, 1, 500, 0.01);
-directionalLight.castShadow = true; // default false
-
-//Set up shadow properties for the light
-// directionalLight.shadow.mapSize.width = 5120; // default 512
-// directionalLight.shadow.mapSize.height = 5120; // default 512
-// directionalLight.shadow.camera.near = 0; // default
-// directionalLight.shadow.camera.far = 1000
-// default
-scene.add(directionalLight);
-
-// //Create a helper for the shadow camera (optional)
-// var helper = new THREE.CameraHelper(directionalLight.shadow.camera);
-// scene.add(helper);
-////    ////    ////
-///    ////    ////
-//    ////    ////
-
-/**
- * player
- */
-let player = new Player();
-////    ////    ////
-///    ////    ////
-//    ////    ////
-
-/**
- * Game controller for all user input
- */
+// Game controller for user input
 let controller = new Controller();
 controller.setup();
-////    ////    ////
-///    ////    ////
-//    ////    ////
 
-/**
- * Time Keeper
- */
-let clock = new THREE.Clock(true);
-////    ////    ////
-///    ////    ////
-//    ////    ////
+// Game
+let game = new Game()
+game.setup();
+game.gameLoop(10);
 
-/**
- * Food
- */
-let food = new THREE.Mesh(
-    new THREE.BoxGeometry(1, 1, 1),
-    new THREE.MeshLambertMaterial({
-        color: 0xff0000
-    })
-);
-scene.add(food);
-food.castShadow = true;
-
-let foodLight = new THREE.PointLight(0xff0000, 1, 20);
-scene.add(foodLight);
-
-////    ////    ////
-///    ////    ////
-//    ////    ////
-
-function setup() {
-    eatfood();
+//// onkeydown onkeyup function ////
+onkeydown = onkeyup = function (e) {
+    // @ts-ignore
+    e = e || event; // to deal with IE
+    controller.keyCodes[e.keyCode] = e.type == 'keydown';
+    controller.update(game.backgroundPlane);
 }
 
-function eatfood() {
-    food.position.x = Math.round(Math.random() * world.width - world.width / 2);
-    food.position.y = Math.round(Math.random() * world.height - world.height / 2);
+document.addEventListener("touchstart", touchstart, false);
 
-    foodLight.position.set(food.position.x, food.position.y, 3);
-
+function touchstart(event) {
+    console.log("touchstart   event : ", event);
 }
 
-let deltaTime;
-let then = 0;
-let frameCount = 0;
-/**
- * @description Master Function for running the game   
- * requestAnimationFrame(gameLoop);  
- * update();  
- * render();  
- */
-function gameLoop(now) {
-    // setTimeout(function () {
-
-    //     requestAnimationFrame(gameLoop);
-
-    // }, 1000 / 30);
-
-    now *= 0.001; // make it seconds
-
-    deltaTime = now - then;
-    then = now;
-
-    requestAnimationFrame(gameLoop);
-    frameCount++;
-
-    if (frameCount > 10) {
-        update();
-        render();
-    }
-
+function onMouseMove(event) {
+    // calculate mouse position in normalized device coordinates
+    // (-1 to +1) for both components
+    controller.htmlmouse.setX((event.clientX / window.innerWidth) * 2 - 1);
+    controller.htmlmouse.setY(-(event.clientY / window.innerHeight) * 2 + 1);
 }
-////    ////    ////
-///    ////    ////
-//    ////    ////
-
-/**
- * update
- */
-function update() {
-
-    controller.update();
-
-    // console.log("Mouse  x" + controller.mouse.x + "  y" + controller.mouse.y);
-
-
-    if (controller.uparrow) {
-        if (player.direction == "down") {
-            player.direction = "down";
-        } else {
-            player.direction = "up";
-        }
-    }
-    if (controller.downarrow) {
-        if (player.direction == "up") {
-            player.direction = "up";
-        } else {
-            player.direction = "down";
-        }
-    }
-    if (controller.leftarrow) {
-        if (player.direction == "right") {
-            player.direction = "right";
-        } else {
-            player.direction = "left";
-        }
-    }
-    if (controller.rightarrow) {
-        if (player.direction == "left") {
-            player.direction = "left";
-        } else {
-            player.direction = "right";
-        }
-    }
-
-    //shift 16
-    //ctrl	17
-
-    // var shift = -1;
-    // var ctrl = 1;
-
-    // if (controller.keyCodes[16] || controller.keyCodes[69]) {
-    //     camera.position.z += shift * speed;
-    // }
-    // if (controller.keyCodes[17] || controller.keyCodes[81]) {
-    //     camera.position.z += ctrl * speed;
-    // }
-
-
-    directionalLight.position.x = Math.sin(frameCount / 400) * 50;
-    directionalLight.position.z = Math.cos(frameCount / 400) * 50;
-
-
-    if (clock.getElapsedTime() > 0.09) {
-        if (controller.keyCodes[32]) {
-            player.grow();
-        }
-        player.update();
-        clock.start();
-    }
-
-}
-////    ////    ////
-///    ////    ////
-//    ////    ////
-
-/**
- * render
- */
-function render() {
-    renderer.render(scene, camera);
-}
-////    ////    ////
-///    ////    ////
-//    ////    ////
-
-setup();
-gameLoop();
-
-////////////////////////////////////

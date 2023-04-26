@@ -31,19 +31,8 @@ class Controller {
     /**
      * @function - Controller update function, Called for each keyup and keydown
      */
-    update() {
-
-        // update the picking ray with the camera and mouse position
+    update(backgroundPlane) {
         this.mouseRaycaster.setFromCamera(this.htmlmouse, camera);
-
-        // // calculate objects intersecting the picking ray
-        // var intersects = this.mouseRaycaster.intersectObjects(scene.children);
-
-        // for (var i = 0; i < intersects.length; i++) {
-        //     this.mouse.x = intersects[i].point.x;
-        //     this.mouse.y = intersects[i].point.y;
-        //     // intersects[i].object.material.color.set(0x00ff00);
-        // }
 
         // calculate objects intersecting the picking ray
         var intersect = this.mouseRaycaster.intersectObject(backgroundPlane);
@@ -64,60 +53,22 @@ class Controller {
             this.shift = true;
         }
 
-        this.leftarrow = false;
-        this.uparrow = false;
-        this.rightarrow = false;
-        this.downarrow = false;
+        this.left = false;
+        this.straight = false;
+        this.right = false;
 
         if (this.keyCodes[37] || this.keyCodes[65]) {
-            this.leftarrow = true;
+            this.left = true;
         }
 
         if (this.keyCodes[38] || this.keyCodes[87]) {
-            this.uparrow = true;
+            this.straight = true;
         }
 
         if (this.keyCodes[39] || this.keyCodes[68]) {
-            this.rightarrow = true;
+            this.right = true;
         }
-
-        if (this.keyCodes[40] || this.keyCodes[83]) {
-            this.downarrow = true;
-        }
-
-        let buffer = 10;
-
-        // if (Math.abs(this.mouse.x) < Math.abs(this.mouse.y)) {
-        //     if (0 < this.mouse.y) {
-        //         this.uparrow = true;
-        //     } else {
-        //         this.downarrow = true;
-        //     }
-        // } else {
-        //     if (0 < this.mouse.x) {
-        //         this.rightarrow = true;
-        //     } else {
-        //         this.leftarrow = true;
-        //     }
-        // }
     }
-
-    /**
-     * @function - Render what Keys are pressed
-     */
-    render() {
-        // let start = 65;
-        // let end = 90; // 222
-        // let pos = 0;
-
-        // fill(255);
-        // for (var i = start; i <= end; i++) {
-        //     pos++;
-        //     text(this.keyCodes[i], 0, 10 * pos + 50);
-        //     text(this.keyChar[i], 40, 10 * pos + 50);
-        // }
-    }
-
     /**
      * @function - Controller setup function
      */
@@ -197,25 +148,3 @@ class Controller {
 
 }
 
-//// onkeydown onkeyup function ////
-onkeydown = onkeyup = function (e) {
-    // @ts-ignore
-    e = e || event; // to deal with IE
-    controller.keyCodes[e.keyCode] = e.type == 'keydown';
-    /* insert conditional here */
-    controller.update();
-}
-//// ////
-
-document.addEventListener("touchstart", touchstart, false);
-
-function touchstart(event) {
-    console.log("touchstart   event : ", event);
-}
-
-function onMouseMove(event) {
-    // calculate mouse position in normalized device coordinates
-    // (-1 to +1) for both components
-    controller.htmlmouse.setX((event.clientX / window.innerWidth) * 2 - 1);
-    controller.htmlmouse.setY(-(event.clientY / window.innerHeight) * 2 + 1);
-}
