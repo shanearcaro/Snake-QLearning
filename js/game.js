@@ -3,6 +3,8 @@ class Game {
         this.raycaster;
         this.mouse;
 
+        this.NUM_ACTIONS = 3
+
         this.world = {
             width: 60,
             height: 60
@@ -108,29 +110,14 @@ class Game {
         requestAnimationFrame(loop);
     }
     
-    update() {
+    update(action) {
+        let reward = 0
+        let done = false
         // Update user input information
-        controller.update(this.backgroundPlane);
-    
-        // If the player turned left, update direction appropriately
-        if (controller.left) {
-            switch (this.player.direction) {
-                case "up":
-                    this.player.direction = "left";
-                    break;
-                case "left":
-                    this.player.direction = "down";
-                    break;
-                case "down":
-                    this.player.direction = "right";
-                    break;
-                case "right":
-                    this.player.direction = "up";
-                    break;
-            }
-        }
+        // controller.update(this.backgroundPlane);
+
         // If the player turned right, update direction appropriately
-        if (controller.right) {
+        if (action == 1) {
             switch (this.player.direction) {
                 case "up":
                     this.player.direction = "right";
@@ -146,21 +133,44 @@ class Game {
                     break;
             }
         }
+        // If the player turned left, update direction appropriately
+        if (action == 2) {
+            switch (this.player.direction) {
+                case "up":
+                    this.player.direction = "left";
+                    break;
+                case "left":
+                    this.player.direction = "down";
+                    break;
+                case "down":
+                    this.player.direction = "right";
+                    break;
+                case "right":
+                    this.player.direction = "up";
+                    break;
+            }
+        }
+        
         if (this.clock.getElapsedTime() > 0.09) {
             this.player.update();
-
+            // If player collides with apple
             if (this.player.isEating(this.apple.position.x, this.apple.position.y)) {
                 this.player.addEntity()
                 this.spawnApple()
+                reward += 10
             }
 
+            // If player collides with body or is out of bounds
             if (this.player.isColliding() || this.player.isOutOfBounds()) {
-                this.player.reset()
-                this.spawnApple()
+                this.reset()
+                done = true
+                reward -= 10
             }
+                
             this.clock.start();
             console.log("State:", this.getState())
         }
+        return [reward, this.getState(), done]
     }
 
     getState() {
@@ -200,6 +210,11 @@ class Game {
         // All state variables
         return [...directions, ...dangers, ...positions]
     }
+
+    reset() {
+        this.player.reset();
+        this.spawnApple();
+    }
     
     // Render the game to the screen
     render() {
@@ -207,32 +222,32 @@ class Game {
     }
 }
 
-// Game controller for user input
-let controller = new Controller();
-controller.setup();
+// // Game controller for user input
+// let controller = new Controller();
+// controller.setup();
 
-// Game
-let game = new Game()
-game.setup();
-game.gameLoop(10);
+// // Game
+// let game = new Game()
+// game.setup();
+// game.gameLoop(10);
 
-//// onkeydown onkeyup function ////
-onkeydown = onkeyup = function (e) {
-    // @ts-ignore
-    e = e || event; // to deal with IE
-    controller.keyCodes[e.keyCode] = e.type == 'keydown';
-    controller.update(game.backgroundPlane);
-}
+// //// onkeydown onkeyup function ////
+// onkeydown = onkeyup = function (e) {
+//     // @ts-ignore
+//     e = e || event; // to deal with IE
+//     controller.keyCodes[e.keyCode] = e.type == 'keydown';
+//     controller.update(game.backgroundPlane);
+// }
 
-document.addEventListener("touchstart", touchstart, false);
+// document.addEventListener("touchstart", touchstart, false);
 
-function touchstart(event) {
-    console.log("touchstart   event : ", event);
-}
+// function touchstart(event) {
+//     console.log("touchstart   event : ", event);
+// }
 
-function onMouseMove(event) {
-    // calculate mouse position in normalized device coordinates
-    // (-1 to +1) for both components
-    controller.htmlmouse.setX((event.clientX / window.innerWidth) * 2 - 1);
-    controller.htmlmouse.setY(-(event.clientY / window.innerHeight) * 2 + 1);
-}
+// function onMouseMove(event) {
+//     // calculate mouse position in normalized device coordinates
+//     // (-1 to +1) for both components
+//     controller.htmlmouse.setX((event.clientX / window.innerWidth) * 2 - 1);
+//     controller.htmlmouse.setY(-(event.clientY / window.innerHeight) * 2 + 1);
+// }

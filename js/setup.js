@@ -11,26 +11,10 @@ const renderer = new THREE.WebGLRenderer({
     antialias: true
 });
 renderer.shadowMap.enabled = true;
-// renderer.shadowMap.type = THREE.PCFSoftShadowMap; // default THREE.PCFShadowMap
 renderer.setSize(window.innerWidth, window.innerHeight);
 document.body.appendChild(renderer.domElement);
-////    ////    ////
-///    ////    ////
-//    ////    ////
 
-
-/**
- * This is the scene
- */
 const scene = new THREE.Scene();
-////    ////    ////
-///    ////    ////
-//    ////    ////
-
-
-/**
- * This is the camera
- */
 const camera = new THREE.PerspectiveCamera(
     70,
     window.innerWidth / window.innerHeight,
@@ -38,30 +22,11 @@ const camera = new THREE.PerspectiveCamera(
     10000
 );
 camera.position.z = 50;
-////    ////    ////
-///    ////    ////
-//    ////    ////
 
-
-/**
- * textureLoader
- */
 var textureLoader = new THREE.TextureLoader();
-
 var images = {
 
 };
-// console.log(images);
-// C:\Users\Lucas\Documents\GitHub\Space-Shooter-Three-Js-Node\public\assets\images\skybox\purplenebula_bk.png
-////    ////    ////
-///    ////    ////
-//    ////    ////
-
-
-
-
-
-
 
 // onWindowResize
 window.addEventListener('resize', onWindowResize, false);
